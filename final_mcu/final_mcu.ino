@@ -171,8 +171,8 @@ void loop(void){
    break;
   }
 
-  analogWrite(greenPin,r);
-  analogWrite(redPin,g);
+  analogWrite(greenPin,g);
+  analogWrite(redPin,r);
   analogWrite(bluePin,b);
   
   if (ir_status == 1) { //偵測是否有硬幣投入(紅外線)，有蜂鳴器發聲 0=recieve
