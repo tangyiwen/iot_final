@@ -137,16 +137,22 @@ void loop(void){
   
   switch(wealth_value){ //隨壓力變化的OLED、LED
     case 0:{
+        r = 0;
+        g = 0;
         b = 255;
         Serial.println("0000"); 
       }
       break;
     case 1:{
+        r = 0;
+        b = 0;
         g = 255;
         Serial.println("0001"); 
       }
       break;
     case 2:{
+        g = 0;
+        b = 0;
        r = 255;
        Serial.println("0002"); 
       }
@@ -157,6 +163,9 @@ void loop(void){
       }
       break;
     default:{
+        r = 0;
+        g = 0;
+        b = 0;
        Serial.println("9999"); 
       }
    break;
