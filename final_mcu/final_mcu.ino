@@ -26,6 +26,10 @@ const int irReceiver = 13;                // 紅外線接收器
 const int irLed  = 14;                    // 紅外線發射器
 const unsigned int frequency = 38000;    // 發射頻率(單位: Hz)
 
+unsigned long time;
+
+int myservo_value = 0;
+
 //copy
 
 int r = 0,g = 0,b = 0;
@@ -53,7 +57,7 @@ void buildWeb() {
   webSite+="</head>\n";
   webSite+="<body>\n";
   webSite+="<div>\n";
-  webSite+="<h1>TITLE</h1>\n";
+  webSite+="<h1>LOCK</h1>\n";
   webSite+="<p id=\"status\">You can select a status ...</p>\n";
   webSite+="<form action=\"/form1\">\n";
   webSite+="<input type=\"radio\" id=\"on\" name=\"lock\" value=\"on\"><label for=\"on\"> LOCK ON  </label>\n";
@@ -70,17 +74,13 @@ void handleRoot() {
 
 void handleLEDStatus() {
   if (server.arg("lock") == "off") {
-  snprintf(led_status, 25, "Now, motor is OFF ...");
-  myservo.write(0); 
-  /*Wire.beginTransmission(8); // transmit to device #8
-  Wire.write(1);              // sends one byte
-  Wire.endTransmission();    // stop transmitting*/
+    snprintf(led_status, 25, "Now, lock is OFF ...");
+    myservo_value = 0;
+    //myservo.write(0); 
   }else {
-  snprintf(led_status, 25, "Now, motor is ON ...");
-   myservo.write(90); 
-  /*Wire.beginTransmission(8); // transmit to device #8
-  Wire.write(0);              // sends one byte
-  Wire.endTransmission();    // stop transmitting*/
+  snprintf(led_status, 25, "Now, lock is ON ...");
+    myservo_value = 90;
+   //myservo.write(90); 
   }
   server.send ( 200 , "text/html" , led_status );
 }
@@ -124,18 +124,16 @@ void setup(void){
   Serial.println("HTTP server started");
 }
 
-void loop(void){
-  server.handleClient();
-  //copy
+int detectfsr(){
   int fsr_value = analogRead(fsr_pin); //壓力感測器的值
   int wealth_value = map(fsr_value, 0, 1023, 0, 3); // 從0~1023映射到0~3
-  int ir_status = digitalRead(irReceiver);   // 讀取 irReceiver 的狀態
   Serial.print(fsr_value); 
   Serial.print("|"); 
-  Serial.print(ir_status);              // 把 irReceiver 的狀態印到 Serial Port
-  Serial.print("|"); 
-  
-  switch(wealth_value){ //隨壓力變化的OLED、LED
+  return(wealth_value);
+}
+
+void rgbledstatus(int value){
+  switch(value){ //隨壓力變化的OLED、LED
     case 0:{
         r = 0;
         g = 0;
@@ -170,14 +168,35 @@ void loop(void){
       }
    break;
   }
-
   analogWrite(greenPin,g);
   analogWrite(redPin,r);
   analogWrite(bluePin,b);
-  
-  if (ir_status == 1) { //偵測是否有硬幣投入(紅外線)，有蜂鳴器發聲 0=recieve
+  Serial.print("|");
+}
+
+int detectir(){
+  int ir_status = digitalRead(irReceiver);   // 讀取 irReceiver 的狀態
+  Serial.print(ir_status);              // 把 irReceiver 的狀態印到 Serial Port
+  Serial.print("|"); 
+  return(ir_status);
+}
+
+void buzstatus(int ir_status){
+  int oldtime = -300;
+  if (ir_status == 1 || time - oldtime < 300) { //偵測是否有硬幣投入(紅外線)，有蜂鳴器發聲 0=recieve signal
     tone(BUZ_PIN, melody, noteDuration);
-    delay(50);
-  }
-  //copy
+    if (ir_status == 1) oldtime = millis();
+  }else noTone(BUZ_PIN);
+}
+
+void motorstatus(){
+  myservo.write(myservo_value); 
+}
+
+void loop(void){
+  server.handleClient();
+  time = millis();
+  rgbledstatus(detectfsr());
+  buzstatus(detectir());
+  motorstatus();
 }
